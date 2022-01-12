@@ -1,5 +1,6 @@
 import os, glob, json
 import pandas as pd
+import numpy as np
 
 def convert_brainstem_stats_to_dict(brainstemFile):
     stats = {}
@@ -55,10 +56,12 @@ if __name__ == '__main__':
     with open("data/subId.json") as f:
         subIdDict = json.load(f)
 
-    for subjectDirectory in glob.glob("data/fsstats/*"):
-        print(subjectDirectory)
+    for subjectDirectory in glob.glob("data/fsstats/*")[:15]:
         df = create_csv(subjectDirectory, subIdDict)
         df_list.append(df)
 
-    final_df = pd.concat(df_list, ignore_index=True)
-    final_df.to_csv("volumes.csv")
+    volume_df = pd.concat(df_list, ignore_index=True).astype({"subjectId": np.int64})
+    baselineDf = pd.read_csv("data/baseline.csv")[["Subject Number", "Hoehn-&-Yahr"]] \
+        .rename(columns={"Subject Number": "subjectId", "Hoehn-&-Yahr": "stage"})
+    df = pd.merge(volume_df, baselineDf, on=["subjectId"], how="left")
+    df.to_csv("data/volumes.csv")
